@@ -1,0 +1,384 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Fraunces: usada apenas em H1/H2 da tela de Login (identidade visual da página). */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 120 20% 99%;
+    --foreground: 150 10% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 10% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 10% 15%;
+
+    --primary: 145 63% 32%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 140 20% 95%;
+    --secondary-foreground: 150 10% 15%;
+
+    --muted: 140 15% 95%;
+    --muted-foreground: 150 5% 45%;
+
+    --accent: 140 20% 93%;
+    --accent-foreground: 150 10% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 145 63% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 210 80% 52%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 140 15% 90%;
+    --input: 140 15% 90%;
+    --ring: 145 63% 32%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 150 5% 35%;
+    --sidebar-primary: 145 63% 32%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 140 20% 95%;
+    --sidebar-accent-foreground: 150 10% 15%;
+    --sidebar-border: 140 15% 92%;
+    --sidebar-ring: 145 63% 32%;
+
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+    /* Identidade visual da tela de Login (src/pages/Login.tsx). Não removidas nem
+       reaproveitadas as vars acima — este é um conjunto novo e isolado. */
+    --domus-dark: 158 45% 6%;
+    --domus-primary: 152 63% 27%;
+    --domus-primary-deep: 152 63% 14%;
+    --domus-gold: 42 48% 55%;
+    --domus-cream: 40 35% 89%;
+  }
+
+  .dark {
+    --background: 150 10% 8%;
+    --foreground: 140 10% 92%;
+
+    --card: 150 10% 11%;
+    --card-foreground: 140 10% 92%;
+
+    --popover: 150 10% 11%;
+    --popover-foreground: 140 10% 92%;
+
+    --primary: 145 63% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 150 10% 16%;
+    --secondary-foreground: 140 10% 92%;
+
+    --muted: 150 10% 16%;
+    --muted-foreground: 140 5% 55%;
+
+    --accent: 150 10% 16%;
+    --accent-foreground: 140 10% 92%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 145 63% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 210 80% 52%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 150 10% 18%;
+    --input: 150 10% 18%;
+    --ring: 145 63% 42%;
+
+    --sidebar-background: 150 10% 10%;
+    --sidebar-foreground: 140 5% 65%;
+    --sidebar-primary: 145 63% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 10% 14%;
+    --sidebar-accent-foreground: 140 10% 92%;
+    --sidebar-border: 150 10% 16%;
+    --sidebar-ring: 145 63% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .status-success {
+    @apply bg-success/10 text-success;
+  }
+  .status-warning {
+    @apply bg-warning/10 text-warning;
+  }
+  .status-info {
+    @apply bg-info/10 text-info;
+  }
+  .status-error {
+    @apply bg-destructive/10 text-destructive;
+  }
+}
+
+/* Scrollbar Domus */
+@layer base {
+  html {
+    scrollbar-color: hsl(var(--primary) / 0.55) hsl(var(--background));
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.75),
+      hsl(var(--primary) / 0.45)
+    );
+    border: 2px solid hsl(var(--background));
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+/* Ajustes globais para mobile/tablet */
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@layer utilities {
+  .domus-mobile-safe {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+}
+
+
+@layer components {
+  .domus-app-shell {
+    background:
+      radial-gradient(circle at top center, hsl(var(--primary) / 0.08), transparent 28rem),
+      linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)) 45%, hsl(var(--card)) 100%);
+  }
+
+  .domus-app-shell main {
+    background:
+      radial-gradient(circle at top right, hsl(var(--primary) / 0.06), transparent 24rem),
+      radial-gradient(circle at bottom left, hsl(var(--primary) / 0.035), transparent 28rem);
+  }
+
+  .domus-app-shell .domus-store-selector {
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.94), hsl(var(--background) / 0.78)) !important;
+    border-color: hsl(var(--border) / 0.9) !important;
+    box-shadow:
+      inset 0 1px 0 hsl(var(--foreground) / 0.06),
+      0 16px 42px hsl(150 30% 3% / 0.22);
+  }
+
+  .domus-app-shell main .bg-card.border,
+  .domus-app-shell main div.rounded-lg.border,
+  .domus-app-shell main div.rounded-xl.border,
+  .domus-app-shell main div.rounded-2xl.border {
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.96), hsl(var(--card) / 0.84));
+    border-color: hsl(var(--border) / 0.82);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--foreground) / 0.04),
+      0 16px 42px hsl(150 30% 3% / 0.14);
+  }
+
+  .domus-app-shell main .bg-card.border:hover,
+  .domus-app-shell main div.rounded-lg.border:hover,
+  .domus-app-shell main div.rounded-xl.border:hover,
+  .domus-app-shell main div.rounded-2xl.border:hover {
+    border-color: hsl(var(--primary) / 0.32);
+  }
+
+  .domus-app-shell main .bg-primary,
+  .domus-app-shell nav .bg-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(148 68% 34%)) !important;
+    box-shadow:
+      0 12px 26px hsl(var(--primary) / 0.22),
+      inset 0 1px 0 hsl(0 0% 100% / 0.14);
+  }
+
+  .domus-app-shell main button,
+  .domus-app-shell main a,
+  .domus-app-shell nav button,
+  .domus-app-shell header button {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+    transition-duration: 180ms;
+    transition-timing-function: ease;
+  }
+
+  .domus-app-shell main button:hover,
+  .domus-app-shell main a:hover,
+  .domus-app-shell nav button:hover,
+  .domus-app-shell header button:hover {
+    transform: translateY(-1px);
+  }
+
+  .domus-app-shell main button:active,
+  .domus-app-shell main a:active,
+  .domus-app-shell nav button:active,
+  .domus-app-shell header button:active {
+    transform: translateY(0);
+  }
+
+  .domus-app-shell main .border-input.bg-background,
+  .domus-app-shell main input,
+  .domus-app-shell main textarea,
+  .domus-app-shell main select {
+    background: hsl(var(--background) / 0.66);
+    border-color: hsl(var(--border) / 0.9);
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.03);
+  }
+
+  .domus-app-shell main input:focus,
+  .domus-app-shell main textarea:focus,
+  .domus-app-shell main select:focus,
+  .domus-app-shell main [role="combobox"]:focus {
+    border-color: hsl(var(--primary) / 0.72);
+    box-shadow:
+      0 0 0 3px hsl(var(--primary) / 0.14),
+      inset 0 1px 0 hsl(var(--foreground) / 0.04);
+  }
+
+  .domus-app-shell main table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .domus-app-shell main thead tr {
+    background: hsl(var(--muted) / 0.28);
+  }
+
+  .domus-app-shell main th {
+    color: hsl(var(--muted-foreground));
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .domus-app-shell main td {
+    color: hsl(var(--foreground) / 0.9);
+  }
+
+  .domus-app-shell main tbody tr:hover {
+    background: hsl(var(--primary) / 0.055) !important;
+  }
+
+  .domus-app-shell main .rounded-full.border {
+    background: hsl(var(--background) / 0.62);
+    border-color: hsl(var(--border) / 0.9);
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.04);
+  }
+
+  .domus-app-shell [data-radix-popper-content-wrapper] {
+    z-index: 60 !important;
+  }
+}
+
+/* Correção específica do Dashboard: contraste no modo claro e leitura em Z */
+@layer components {
+  .dashboard-page .dashboard-panel {
+    color: hsl(var(--card-foreground));
+    background: hsl(var(--card) / 0.96) !important;
+    border: 1px solid hsl(var(--border) / 0.88) !important;
+    border-radius: 1rem;
+    box-shadow: 0 16px 42px hsl(150 30% 3% / 0.10) !important;
+  }
+
+  .dashboard-page .dashboard-section-title {
+    color: hsl(var(--foreground));
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .dashboard-page .dashboard-list-row {
+    color: hsl(var(--foreground));
+    background: hsl(var(--background) / 0.82) !important;
+    border: 1px solid hsl(var(--border) / 0.72) !important;
+    border-radius: 1rem;
+    box-shadow: 0 10px 28px hsl(150 30% 3% / 0.07) !important;
+  }
+
+  .dashboard-page .dashboard-empty-state {
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--background) / 0.78) !important;
+    border: 1px dashed hsl(var(--border) / 0.80) !important;
+    border-radius: 1rem;
+    padding: 2rem 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+    box-shadow: none !important;
+  }
+
+  .dashboard-page .dashboard-warning-panel {
+    border-color: hsl(var(--warning) / 0.35) !important;
+  }
+
+  .dashboard-page .dashboard-warning-row {
+    background: hsl(var(--warning) / 0.06) !important;
+    border-color: hsl(var(--warning) / 0.28) !important;
+  }
+
+  .dark .dashboard-page .dashboard-panel {
+    background: hsl(var(--card) / 0.92) !important;
+    box-shadow: 0 16px 42px hsl(150 30% 3% / 0.28) !important;
+  }
+
+  .dark .dashboard-page .dashboard-list-row {
+    background: hsl(var(--background) / 0.46) !important;
+  }
+}
