@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Link2, Pencil, Plus, RefreshCw } from "lucide-react";
+import { Copy, KeyRound, Link2, Pencil, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   adminAutoLink,
+  createPortalAccess,
   adminLinkStore,
   adminSearchStores,
   fetchAdminList,
@@ -46,6 +47,9 @@ export default function PartnerAdmin() {
   const [linkChoice, setLinkChoice] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const [found, setFound] = useState<AdminStoreSearch[]>([]);
+  // acesso criado: mostra a senha provisória uma vez
+  const [access, setAccess] = useState<{ email: string; password?: string; exists?: boolean } | null>(null);
+  const [creatingAccess, setCreatingAccess] = useState<string | null>(null);
 
   const load = useCallback(() => {
     fetchAdminList()
@@ -114,6 +118,28 @@ export default function PartnerAdmin() {
     }
   };
 
+  const createAccess = async (email: string | null) => {
+    if (!email) {
+      toast.error(t("partnerPortal.accessNeedsEmail"));
+      return;
+    }
+    setCreatingAccess(email);
+    try {
+      const res = await createPortalAccess(email);
+      setAccess({ email, password: res.password, exists: res.exists });
+    } catch (e) {
+      toast.error(errorText(e) || t("partnerPortal.accessError"));
+    } finally {
+      setCreatingAccess(null);
+    }
+  };
+
+  const accessButton = (email: string | null) => (
+    <Button variant="outline" size="sm" disabled={!email || creatingAccess === email} onClick={() => void createAccess(email)}>
+      <KeyRound className="mr-1 h-4 w-4" /> {t("partnerPortal.createAccess")}
+    </Button>
+  );
+
   const CouponSelect = ({ storeId }: { storeId: string }) => (
     <div className="flex gap-2">
       <Select value={linkChoice[storeId] || ""} onValueChange={(v) => setLinkChoice((c) => ({ ...c, [storeId]: v }))}>
@@ -180,7 +206,10 @@ export default function PartnerAdmin() {
                       <td className="p-2">{p.email || "-"}</td>
                       <td className="p-2">{p.phone || "-"}</td>
                       <td className="p-2">{p.active ? t("partnerPortal.yes") : t("partnerPortal.no")}</td>
-                      <td className="p-2 text-right">{editButton(() => setEditing({ kind: "partner", data: p }))}</td>
+                      <td className="p-2 text-right">
+                        {accessButton(p.email)}
+                        {editButton(() => setEditing({ kind: "partner", data: p }))}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -217,7 +246,10 @@ export default function PartnerAdmin() {
                       <td className="p-2">{a.partner_name || "-"}</td>
                       <td className="p-2">{a.recurring_percent ?? t("partnerPortal.toDefine")}</td>
                       <td className="p-2 text-right">{a.stores}</td>
-                      <td className="p-2 text-right">{editButton(() => setEditing({ kind: "ambassador", data: a }))}</td>
+                      <td className="p-2 text-right">
+                        {accessButton(a.email)}
+                        {editButton(() => setEditing({ kind: "ambassador", data: a }))}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -335,6 +367,43 @@ export default function PartnerAdmin() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={Boolean(access)} onOpenChange={(open) => !open && setAccess(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{access?.exists ? t("partnerPortal.accessExistsTitle") : t("partnerPortal.accessCreatedTitle")}</DialogTitle>
+          </DialogHeader>
+          {access && (
+            <div className="space-y-3 text-sm">
+              {access.exists ? (
+                <p>{t("partnerPortal.accessExists", { email: access.email })}</p>
+              ) : (
+                <>
+                  <p>{t("partnerPortal.accessCreatedDesc", { email: access.email })}</p>
+                  <div className="flex items-center gap-2 rounded-xl border bg-muted/40 p-3">
+                    <span className="flex-1 font-mono text-base">{access.password}</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        void navigator.clipboard
+                          ?.writeText(t("partnerPortal.accessMessage", { email: access.email, password: access.password }))
+                          .then(() => toast.success(t("partnerPortal.copied")));
+                      }}
+                    >
+                      <Copy className="mr-1 h-4 w-4" /> {t("partnerPortal.copyMessage")}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t("partnerPortal.accessOnce")}</p>
+                </>
+              )}
+              <Button className="w-full" onClick={() => setAccess(null)}>
+                {t("partnerPortal.close")}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-md">

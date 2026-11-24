@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { Session } from "@supabase/supabase-js";
-import { Handshake, LogOut, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { fetchPortalMe, requestPortalLogin, type PortalMe } from "@/lib/partnerPortal";
+import { Handshake, KeyRound, LogOut, Loader2 } from "lucide-react";
+import { openedFromRecoveryLink, supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { MIN_PASSWORD, fetchPortalMe, sendPasswordReset, signInPortal, updatePassword, type PortalMe } from "@/lib/partnerPortal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,25 +23,35 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 function LoginScreen() {
   const { t } = useTranslation();
+  const [mode, setMode] = useState<"login" | "forgot">("login");
   const [email, setEmail] = useState("");
-  const [sending, setSending] = useState(false);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const send = async () => {
+  const submit = async () => {
     const clean = email.trim().toLowerCase();
     if (!EMAIL_RE.test(clean)) {
       setMessage({ ok: false, text: t("partnerPortal.invalidEmail") });
       return;
     }
-    setSending(true);
+    setBusy(true);
     setMessage(null);
     try {
-      await requestPortalLogin(clean, `${window.location.origin}/`);
-      setMessage({ ok: true, text: t("partnerPortal.linkSent") });
-    } catch {
-      setMessage({ ok: false, text: t("partnerPortal.loginError") });
+      if (mode === "login") {
+        await signInPortal(clean, password);
+      } else {
+        await sendPasswordReset(clean);
+        setMessage({ ok: true, text: t("partnerPortal.resetSent") });
+      }
+    } catch (error) {
+      const text = String((error as { message?: string })?.message || "").toLowerCase();
+      setMessage({
+        ok: false,
+        text: mode === "login" && text.includes("invalid") ? t("partnerPortal.loginInvalid") : t("partnerPortal.loginError"),
+      });
     } finally {
-      setSending(false);
+      setBusy(false);
     }
   };
 
@@ -50,29 +62,107 @@ function LoginScreen() {
           <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
             <Handshake className="h-4 w-4" /> Domus BI
           </p>
-          <CardTitle>{t("partnerPortal.loginTitle")}</CardTitle>
-          <CardDescription>{t("partnerPortal.loginDesc")}</CardDescription>
+          <CardTitle>{mode === "login" ? t("partnerPortal.loginTitle") : t("partnerPortal.forgotTitle")}</CardTitle>
+          <CardDescription>{mode === "login" ? t("partnerPortal.loginDesc") : t("partnerPortal.forgotDesc")}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="partner-email">{t("partnerPortal.emailLabel")}</Label>
-            <Input
-              id="partner-email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && void send()}
-            />
-          </div>
-          <Button className="w-full" onClick={() => void send()} disabled={sending}>
-            {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {sending ? t("partnerPortal.sending") : t("partnerPortal.sendLink")}
-          </Button>
-          {message && <p className={`text-sm ${message.ok ? "text-emerald-600" : "text-destructive"}`}>{message.text}</p>}
+        <CardContent>
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit();
+            }}
+          >
+            <div className="space-y-1">
+              <Label htmlFor="partner-email">{t("partnerPortal.emailLabel")}</Label>
+              <Input id="partner-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            {mode === "login" && (
+              <div className="space-y-1">
+                <Label htmlFor="partner-password">{t("partnerPortal.passwordLabel")}</Label>
+                <Input
+                  id="partner-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            )}
+            <Button type="submit" className="w-full" disabled={busy || (mode === "login" && !password)}>
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {mode === "login" ? t("partnerPortal.signIn") : t("partnerPortal.sendReset")}
+            </Button>
+            {message && <p className={`text-sm ${message.ok ? "text-emerald-600" : "text-destructive"}`}>{message.text}</p>}
+            <button
+              type="button"
+              className="w-full text-center text-sm text-muted-foreground hover:text-foreground hover:underline"
+              onClick={() => {
+                setMode(mode === "login" ? "forgot" : "login");
+                setMessage(null);
+              }}
+            >
+              {mode === "login" ? t("partnerPortal.forgotPassword") : t("partnerPortal.backToLogin")}
+            </button>
+          </form>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/** Senha nova: depois do link de "Esqueci minha senha" ou pelo botão Trocar senha. */
+function SetPasswordForm({ onDone }: { onDone: () => void }) {
+  const { t } = useTranslation();
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const save = async () => {
+    if (password.length < MIN_PASSWORD) {
+      setError(t("partnerPortal.passwordShort", { count: MIN_PASSWORD }));
+      return;
+    }
+    if (password !== confirm) {
+      setError(t("partnerPortal.passwordMismatch"));
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await updatePassword(password);
+      toast.success(t("partnerPortal.passwordSaved"));
+      onDone();
+    } catch {
+      setError(t("partnerPortal.saveError"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form
+      className="space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save();
+      }}
+    >
+      <div className="space-y-1">
+        <Label htmlFor="new-password">{t("partnerPortal.newPassword")}</Label>
+        <Input id="new-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="confirm-password">{t("partnerPortal.confirmPassword")}</Label>
+        <Input id="confirm-password" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <Button type="submit" className="w-full" disabled={busy}>
+        {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {t("partnerPortal.savePassword")}
+      </Button>
+    </form>
   );
 }
 
@@ -81,11 +171,17 @@ export default function PartnerPortalShell() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [me, setMe] = useState<PortalMe | null>(null);
   const [meError, setMeError] = useState(false);
+  // veio do link de "Esqueci minha senha": pede a senha nova antes de tudo
+  const [recovery, setRecovery] = useState(openedFromRecoveryLink);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     document.title = `${t("partnerPortal.title")} | Domus BI`;
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
+      setSession(next);
+    });
     return () => data.subscription.unsubscribe();
   }, [t]);
 
@@ -112,6 +208,22 @@ export default function PartnerPortalShell() {
     return <div className="py-24 text-center text-sm text-muted-foreground">{t("partnerPortal.loading")}</div>;
   }
   if (!session) return <LoginScreen />;
+
+  if (recovery) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <Card className="w-full max-w-md rounded-3xl">
+          <CardHeader>
+            <CardTitle>{t("partnerPortal.newPasswordTitle")}</CardTitle>
+            <CardDescription>{t("partnerPortal.newPasswordDesc")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SetPasswordForm onDone={() => setRecovery(false)} />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (meError || !me?.role) {
     return (
@@ -166,12 +278,23 @@ export default function PartnerPortalShell() {
                 {t("partnerPortal.navAdmin")}
               </NavLink>
             )}
+            <Button variant="ghost" size="sm" onClick={() => setChangingPassword(true)}>
+              <KeyRound className="mr-1 h-4 w-4" /> {t("partnerPortal.changePassword")}
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => void logout()}>
               <LogOut className="mr-1 h-4 w-4" /> {t("partnerPortal.logout")}
             </Button>
           </div>
         </div>
       </header>
+      <Dialog open={changingPassword} onOpenChange={setChangingPassword}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("partnerPortal.changePassword")}</DialogTitle>
+          </DialogHeader>
+          <SetPasswordForm onDone={() => setChangingPassword(false)} />
+        </DialogContent>
+      </Dialog>
       <main className="mx-auto max-w-6xl px-4 py-5">
         <Routes>
           <Route path="/" element={<PartnerDashboard />} />

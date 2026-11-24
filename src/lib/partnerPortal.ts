@@ -155,12 +155,47 @@ export const saveCancellationReason = (storeId: string, reason: CancellationReas
 export const fetchCancellationReasonPending = (storeId: string) =>
   call<boolean>("get_cancellation_reason_pending", { p_store_id: storeId });
 
-/** Pede o link de acesso por e-mail (edge function partner-portal-login). */
-export const requestPortalLogin = async (email: string, redirectTo: string) => {
-  const { data, error } = await supabase.functions.invoke("partner-portal-login", { body: { email, redirectTo } });
+// ---------------------------------------------------------------- acesso
+
+/** Entra com e-mail e senha (mesma conta do Supabase da Domus). */
+export const signInPortal = async (email: string, password: string) => {
+  const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   if (error) throw error;
-  return data as { ok?: boolean; error?: string };
 };
+
+/** "Esqueci minha senha": manda o link para criar uma senha nova. */
+export const sendPasswordReset = async (email: string) => {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    redirectTo: `${window.location.origin}/`,
+  });
+  if (error) throw error;
+};
+
+export const updatePassword = async (password: string) => {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+};
+
+/**
+ * Administração: cria o acesso de um parceiro/embaixadora (edge function
+ * partner-portal-create-access). Devolve a senha provisória, ou exists
+ * quando o e-mail já tem conta (a senha não é trocada).
+ */
+export const createPortalAccess = async (email: string) => {
+  const { data, error } = await supabase.functions.invoke("partner-portal-create-access", { body: { email } });
+  if (error) {
+    let message = "";
+    try {
+      message = (await (error as { context?: Response }).context?.json())?.error || "";
+    } catch {
+      message = "";
+    }
+    throw new Error(message || error.message);
+  }
+  return data as { created?: boolean; password?: string; exists?: boolean };
+};
+
+export const MIN_PASSWORD = 8;
 
 /** "MARIA 10" -> "MARIA10" (igual ao normalize_coupon_code do banco). */
 export const normalizeCouponCode = (value: string) =>
